@@ -1,0 +1,7 @@
+# Пример dev-конфига агента (M1: заглушка с фейковыми метриками)
+rig_id = "dev-rig"
+metrics_host = "0.0.0.0"
+metrics_port = 9101
+poll_interval_s = 5.0
+fake_gpu_count = 2
+# server_url = "ws://localhost:8000/ws/agent"  # используется с M2d
