@@ -10,8 +10,8 @@ Pet-проект, используется автором на личных ри
 
 1. **Полезность** — рабочий инструмент управления своими ригами,
    заменяющий критичные функции HiveOS на личных машинах.
-2. **Обучение** — Python, React 19, FastAPI, Prometheus, Grafana,
-   работа с агентскими системами (Claude Code).
+2. **Обучение** — Python, Vue 3.5 (второй фреймворк после React), FastAPI,
+   Prometheus, Grafana, работа с агентскими системами (Claude Code).
 3. **Дисциплина итераций** — каждая M-веха самодостаточна,
    проект остаётся полезным на любой точке остановки.
 
@@ -49,7 +49,7 @@ Pet-проект, используется автором на личных ри
 
 ```
 ┌────────────────────────────────────────────────────┐
-│  React 19 UI (web)                                 │
+│  Vue 3.5 UI (web)                                  │
 │  Управление + embedded Grafana панели              │
 └────────────────────────────────────────────────────┘
            ↑                          ↑
@@ -75,7 +75,7 @@ Pet-проект, используется автором на личных ри
 | **server/** (FastAPI + SQLite) | API, WebSocket-хаб для агентов, хранение state (конфиги ригов, команды, события), авторизация |
 | **Prometheus** | Хранение всех time-series метрик (hashrate, температуры, fan, power) |
 | **Grafana** | Все исторические графики, дашборды, алерты (в будущих вехах) |
-| **web/** (React 19) | Управляющий UI, список ригов, статус, embedded Grafana панели через iframe |
+| **web/** (Vue 3.5) | Управляющий UI, список ригов, статус, embedded Grafana панели через iframe |
 
 **Принцип границы:** числовые метрики во времени → Prometheus.
 Всё остальное (state, конфиги, события, команды) → SQLite через сервер.
@@ -89,7 +89,7 @@ Pet-проект, используется автором на личных ри
 | Metrics collection | **prometheus-client** (Python), **pynvml** (Nvidia сейчас; AMD через rocm-smi/sysfs позже — см. ADR 0004) |
 | Mining infra | **Prometheus**, **Grafana** (через docker-compose) |
 | БД | **SQLite** (один файл, без отдельного сервера) |
-| Frontend | **React 19** + **Vite** + **TypeScript**, **TanStack Query**, **TanStack Router**, **Zustand**, **Tailwind CSS** |
+| Frontend | **Vue 3.5** + **Vite** + **TypeScript**, **TanStack Vue Query**, **Vue Router**, **Pinia**, **Tailwind CSS** |
 | Deploy | **Docker Compose** (сервер), **systemd unit** (агент) |
 | CI | **GitHub Actions** |
 
@@ -101,15 +101,17 @@ Pet-проект, используется автором на личных ри
   в одном, типизация наследуется в API.
 - **SQLite, не PostgreSQL** — на 3 рига более чем достаточно.
   Если когда-нибудь упрёмся — миграция через SQLModel почти бесплатна.
-- **React 19, не Vue** — у автора уже сильный React-бэкграунд.
-  Не размазываем когнитивную нагрузку: новое в проекте — Python,
-  DevOps-стек, метрики. Фронт в знакомом фреймворке.
-  React 19 сам по себе достаточно новый (Server Components,
-  Actions, useOptimistic, React Compiler).
-- **TanStack Router** вместо React Router — лучшая типизация,
-  type-safe params, повод изучить.
-- **Zustand** вместо Redux — простой клиентский стейт,
+- **Vue 3.5, не React** — осознанный разворот (ADR 0007). Проект
+  самообразовательный, цель — рост автора как специалиста. У автора
+  3 года React (в основном v18); React 19 в нашем Vite-CSR-сетапе почти
+  не раскрывается (его новинки — для SSR). Vue — второй фреймворк
+  (ширина), плюс закрепление пройденного курса Vue 3.5. Composition API,
+  `<script setup>`, отличная реактивность.
+- **Vue Router** — официальный роутер Vue, зрелый, component-based.
+- **Pinia** вместо Redux — официальный стор Vue, простой клиентский стейт,
   для дашборда более чем достаточно.
+- **TanStack Vue Query** — server-state/кеш/синхронизация; Vue-адаптер
+  TanStack Query (решение по data-fetching сохранено с React-варианта).
 - **Prometheus + Grafana**, а не своя реализация метрик —
   индустриальный стандарт, меньше кода писать, навык универсальный.
 
@@ -118,9 +120,10 @@ Pet-проект, используется автором на личных ри
 - ❌ `requests` — только `httpx` (async-friendly, современный API)
 - ❌ Raw SQLAlchemy — только через `SQLModel`
 - ❌ `pip`/`poetry`/`pipenv` — только `uv`
-- ❌ Redux/Redux-Toolkit — `Zustand` для клиентского стейта
-- ❌ React Router — `TanStack Router`
-- ❌ axios — `fetch` через `TanStack Query`, нативный API
+- ❌ Redux/Redux-Toolkit — `Pinia` для клиентского стейта
+- ❌ React Router / TanStack Router — `Vue Router`
+- ❌ axios — `fetch` через `TanStack Vue Query`, нативный API
+- ❌ Options API во Vue без причины — `<script setup>` + Composition API
 - ❌ Синхронные обработчики в FastAPI без явной причины (всё async)
 
 ## Структура репозитория
@@ -161,16 +164,17 @@ stoker/
 │   │   └── config.py
 │   ├── tests/
 │   └── README.md
-├── web/                         # React 19 SPA
+├── web/                         # Vue 3.5 SPA
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── tsconfig.json
 │   ├── src/
-│   │   ├── main.tsx
-│   │   ├── routes/              # TanStack Router
-│   │   ├── components/
-│   │   ├── api/                 # клиент для сервера
-│   │   └── stores/              # Zustand
+│   │   ├── main.ts
+│   │   ├── App.vue
+│   │   ├── router/              # Vue Router
+│   │   ├── components/          # SFC (<script setup>)
+│   │   ├── api/                 # клиент для сервера (TanStack Vue Query)
+│   │   └── stores/              # Pinia
 │   └── README.md
 ├── infra/
 │   ├── prometheus/
@@ -191,7 +195,8 @@ stoker/
     │   ├── 0003-miner-driver-abstraction.md
     │   ├── 0004-gpu-collector-abstraction.md
     │   ├── 0005-miner-api-localhost-binding.md
-    │   └── 0006-metrics-transport-reachability.md
+    │   ├── 0006-metrics-transport-reachability.md
+    │   └── 0007-ui-framework-vue.md
     ├── research/                # отчёты сабагентов
     ├── roadmap.md               # "если захочется" фичи без обязательств
     └── learning-notes.md        # автоконспект новых концепций
@@ -219,13 +224,13 @@ stoker/
 - **На каждую функцию с логикой — pytest-тест.**
 - Формат: `ruff format`. Линт: `ruff check`. Оба до коммита.
 
-### TypeScript / React
+### TypeScript / Vue
 
 - **strict: true** в tsconfig, никаких `any` без явного обоснования.
-- Компоненты — функциональные, hooks.
-- Server state через **TanStack Query**, не useState с fetch.
-- Client state через **Zustand**, не useContext для глобального.
-- Стили — **Tailwind utility classes**, без styled-components.
+- Компоненты — SFC с `<script setup lang="ts">` (Composition API).
+- Server state через **TanStack Vue Query**, не ручной fetch в `ref`.
+- Client state через **Pinia**, не `provide/inject` для глобального.
+- Стили — **Tailwind utility classes**, без scoped-CSS-наворотов где не нужно.
 
 ### Git
 
@@ -360,7 +365,7 @@ cd web && pnpm lint && pnpm typecheck
   fan, power. Provisioned автоматически.
 - **M2d** — WebSocket агент↔сервер для команд и состояния
   (не для метрик — метрики идут через Prometheus).
-- **M3** — React 19 UI: список ригов, статус подключения,
+- **M3** — Vue 3.5 UI: список ригов, статус подключения,
   embedded Grafana панели через iframe.
 - **M4** — Запуск/остановка майнера с UI. Первый драйвер — WildRig Multi
   (`MinerDriver`, ADR 0003); API майнера на localhost, контроль брокерится
